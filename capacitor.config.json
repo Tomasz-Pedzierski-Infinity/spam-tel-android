@@ -1,0 +1,14 @@
+{
+  "appId": "com.spamtel.blocker",
+  "appName": "SpamTel",
+  "webDir": "www",
+  "plugins": {
+    "CapacitorNativeSettings": {
+      "openAtInstall": true
+    }
+  },
+  "android": {
+    "allowMixedContent": true,
+    "backgroundColor": "#0f0f0f"
+  }
+}
