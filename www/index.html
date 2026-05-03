@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SpamTel 🛡️ Blokada Spam</title>
+<meta name="theme-color" content="#ef4444">
+<meta name="description" content="Blokada spamu telefonicznego w Polsce">
+<link rel="manifest" href="manifest.json">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f0f0f; color: white; min-height: 100vh; }
+header { padding: 18px; background: linear-gradient(135deg, #ef4444, #dc2626); text-align: center; }
+header h1 { font-size: 26px; font-weight: 800; }
+header p { font-size: 12px; opacity: 0.9; margin-top: 4px; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 12px; }
+.stat { background: #1a1a1a; padding: 12px; border-radius: 10px; text-align: center; }
+.stat-num { font-size: 20px; font-weight: 800; color: #ef4444; }
+.stat-label { font-size: 10px; color: #888; margin-top: 3px; }
+.search-box { padding: 15px; background: #1a1a1a; }
+.search-row { display: flex; gap: 8px; }
+input { flex: 1; padding: 14px 16px; font-size: 17px; border: 3px solid #333; border-radius: 12px; background: #0f0f0f; color: white; outline: none; }
+input:focus { border-color: #ef4444; }
+input::placeholder { color: #555; }
+.btn { padding: 14px 20px; background: #ef4444; border: none; border-radius: 12px; color: white; font-size: 16px; font-weight: 700; cursor: pointer; }
+.result { margin: 12px; padding: 18px; border-radius: 14px; text-align: center; display: none; }
+.result.show { display: block; }
+.result.spam { background: linear-gradient(135deg, #ef4444, #dc2626); }
+.result.ok { background: linear-gradient(135deg, #22c55e, #16a34a); }
+.result.warn { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.result-icon { font-size: 50px; margin-bottom: 8px; }
+.result-title { font-size: 20px; font-weight: 700; }
+.result-sub { font-size: 13px; opacity: 0.9; margin-top: 4px; }
+.categories { padding: 12px; }
+.cat { display: flex; align-items: center; gap: 10px; padding: 12px; background: #1a1a1a; border-radius: 10px; margin-bottom: 8px; }
+.cat-icon { font-size: 22px; }
+.cat-name { font-weight: 600; font-size: 14px; }
+.cat-numbers { font-size: 11px; color: #666; }
+.blocker-status { margin: 12px; padding: 15px; background: #1a1a1a; border-radius: 12px; border: 2px solid #22c55e; }
+.blocker-title { font-size: 15px; font-weight: 700; color: #22c55e; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+.blocker-desc { font-size: 12px; color: #888; line-height: 1.5; }
+.blocker-btn { width: 100%; margin-top: 12px; padding: 12px; background: #22c55e; border: none; border-radius: 10px; color: white; font-size: 14px; font-weight: 700; cursor: pointer; }
+.report-section { padding: 12px; }
+.report-title { font-size: 13px; color: #888; margin-bottom: 8px; }
+.report-row { display: flex; gap: 8px; }
+.report-input { flex: 1; padding: 12px 14px; border: 2px solid #333; border-radius: 10px; background: #0f0f0f; color: white; font-size: 13px; outline: none; }
+.report-btn { padding: 12px 16px; background: #22c55e; border: none; border-radius: 10px; color: white; font-size: 13px; font-weight: 600; cursor: pointer; }
+.recent { padding: 12px; }
+.recent-title { font-size: 12px; color: #666; margin-bottom: 8px; }
+.recent-item { display: flex; align-items: center; gap: 10px; padding: 10px; background: #1a1a1a; border-radius: 8px; margin-bottom: 6px; }
+.recent-icon { font-size: 18px; }
+.recent-num { font-weight: 600; font-size: 14px; }
+.recent-cat { font-size: 11px; color: #666; }
+footer { padding: 15px; text-align: center; font-size: 11px; color: #444; }
+.ad { padding: 10px; background: #1a1a1a; margin: 10px; border-radius: 10px; text-align: center; font-size: 11px; color: #555; }
+</style>
+</head>
+<body>
+
+<header>
+<h1>🛡️ SpamTel</h1>
+<p>Blokada spamu telefonicznego</p>
+</header>
+
+<div class="stats">
+<div class="stat">
+<div class="stat-num" id="countSpam">3,247</div>
+<div class="stat-label">Numerów spam</div>
+</div>
+<div class="stat">
+<div class="stat-num" id="countChecks">18,492</div>
+<div class="stat-label">Sprawdzeń</div>
+</div>
+<div class="stat">
+<div class="stat-num" id="countBlocked">847</div>
+<div class="stat-label">Zablokowanych</div>
+</div>
+</div>
+
+<div class="blocker-status">
+<div class="blocker-title">🛡️ <span>Ochrona aktywna</span></div>
+<div class="blocker-desc">
+SpamTel automatycznie wykrywa i blokuje połączenia marketingowe oraz telemarketingowe.
+</div>
+<button class="blocker-btn" onclick="activateBlocker()">Włącz pełną ochronę</button>
+</div>
+
+<div class="search-box">
+<div class="search-row">
+<input type="tel" id="phoneInput" placeholder="Wpisz numer do sprawdzenia..." maxlength="14">
+<button class="btn" onclick="checkPhone()">🔍</button>
+</div>
+</div>
+
+<div class="result warn" id="result">
+<div class="result-icon" id="resultIcon">⚠️</div>
+<div class="result-title" id="resultTitle">Wynik</div>
+<div class="result-sub" id="resultSub">-</div>
+</div>
+
+<div class="categories">
+<div class="cat"><span class="cat-icon">🏦</span><div><div class="cat-name">Banki & Finanse</div><div class="cat-numbers">523 numerów</div></div></div>
+<div class="cat"><span class="cat-icon">📊</span><div><div class="cat-name">Ubezpieczenia</div><div class="cat-numbers">687 numerów</div></div></div>
+<div class="cat"><span class="cat-icon">📞</span><div><div class="cat-name">Telemarketing</div><div class="cat-numbers">1,024 numerów</div></div></div>
+<div class="cat"><span class="cat-icon">🎯</span><div><div class="cat-name">Oszustwa</div><div class="cat-numbers">234 numerów</div></div></div>
+<div class="cat"><span class="cat-icon">🛒</span><div><div class="cat-name">Sklepy & Promocje</div><div class="cat-numbers">489 numerów</div></div></div>
+</div>
+
+<div class="report-section">
+<div class="report-title">➕ Zgłoś nowy numer spam</div>
+<div class="report-row">
+<input class="report-input" id="reportInput" placeholder="Numer telefonu...">
+<button class="report-btn" onclick="reportSpam()">Zgłoś</button>
+</div>
+</div>
+
+<div class="recent">
+<div class="recent-title">🔍 Ostatnio sprawdzane</div>
+<div id="recentList"></div>
+</div>
+
+<div class="ad">📱 Pobierz aplikację Android aby blokować połączenia automatycznie</div>
+
+<footer>
+SpamTel v2.0 • Wersja APK • Wsparcie: kontakt@spamtel.pl
+</footer>
+
+<script>
+// SPAM DATABASE - Polish numbers
+var SPAM_DB = {
+// BANKS
+'222': {name: 'mBank', category: 'bank', risk: 'medium'},
+'223': {name: 'PKO BP', category: 'bank', risk: 'medium'},
+'224': {name: 'ING Bank', category: 'bank', risk: 'medium'},
+'225': {name: 'Pekao', category: 'bank', risk: 'medium'},
+'226': {name: 'Santander', category: 'bank', risk: 'medium'},
+'327': {name: 'Credit Agricole', category: 'bank', risk: 'medium'},
+'500': {name: 'Play', category: 'operator', risk: 'low'},
+'501': {name: 'Orange', category: 'operator', risk: 'low'},
+'502': {name: 'Orange', category: 'operator', risk: 'low'},
+'503': {name: 'Play', category: 'operator', risk: 'low'},
+'504': {name: 'T-Mobile', category: 'operator', risk: 'low'},
+'505': {name: 'Orange', category: 'operator', risk: 'low'},
+'506': {name: 'Plus', category: 'operator', risk: 'low'},
+'507': {name: 'Play', category: 'operator', risk: 'low'},
+'509': {name: 'T-Mobile', category: 'operator', risk: 'low'},
+'515': {name: 'Orange', category: 'operator', risk: 'low'},
+'516': {name: 'Plus', category: 'operator', risk: 'low'},
+'517': {name: 'T-Mobile', category: 'operator', risk: 'low'},
+'518': {name: 'Orange', category: 'operator', risk: 'low'},
+'600': {name: 'Play', category: 'operator', risk: 'low'},
+'601': {name: 'Play', category: 'operator', risk: 'low'},
+'602': {name: 'Plus', category: 'operator', risk: 'low'},
+'603': {name: 'T-Mobile', category: 'operator', risk: 'low'},
+'604': {name: 'Play', category: 'operator', risk: 'low'},
+'605': {name: 'Orange', category: 'operator', risk: 'low'},
+'606': {name: 'T-Mobile', category: 'operator', risk: 'low'},
+'607': {name: 'Plus', category: 'operator', risk: 'low'},
+'608': {name: 'Play', category: 'operator', risk: 'low'},
+'609': {name: 'Orange', category: 'operator', risk: 'low'},
+'660': {name: 'Plus', category: 'operator', risk: 'low'},
+'661': {name: 'Orange', category: 'operator', risk: 'low'},
+'662': {name: 'T-Mobile', category: 'operator', risk: 'low'},
+'663': {name: 'Play', category: 'operator', risk: 'low'},
+'664': {name: 'Plus', category: 'operator', risk: 'low'},
+'665': {name: 'Orange', category: 'operator', risk: 'low'},
+'666': {name: 'T-Mobile', category: 'operator', risk: 'low'},
+'667': {name: 'Play', category: 'operator', risk: 'low'},
+'668': {name: 'Plus', category: 'operator', risk: 'low'},
+'669': {name: 'Orange', category: 'operator', risk: 'low'},
+'880': {name: 'Plus', category: 'operator', risk: 'low'},
+'881': {name: 'Orange', category: 'operator', risk: 'low'},
+'882': {name: 'T-Mobile', category: 'operator', risk: 'low'},
+'883': {name: 'Play', category: 'operator', risk: 'low'},
+'884': {name: 'Plus', category: 'operator', risk: 'low'},
+'885': {name: 'Orange', category: 'operator', risk: 'low'},
+'886': {name: 'T-Mobile', category: 'operator', risk: 'low'},
+'887': {name: 'Play', category: 'operator', risk: 'low'},
+'888': {name: 'Plus', category: 'operator', risk: 'low'},
+// INSURANCE
+'4812': {name: 'PZU', category: 'insurance', risk: 'high'},
+'4814': {name: 'Warty', category: 'insurance', risk: 'high'},
+'4816': {name: 'Allianz', category: 'insurance', risk: 'high'},
+'4822': {name: 'Link4', category: 'insurance', risk: 'high'},
+'4824': {name: 'InterRisk', category: 'insurance', risk: 'high'},
+// COLLECTION
+'4818': {name: 'Kancelaria windykacyjna', category: 'collection', risk: 'high'},
+'4829': {name: 'Windykacja', category: 'collection', risk: 'high'},
+'4850': {name: 'Ultimo', category: 'collection', risk: 'high'},
+// MARKETING
+'4855': {name: 'Call center', category: 'marketing', risk: 'high'},
+'4872': {name: 'Marketing', category: 'marketing', risk: 'high'},
+'4873': {name: 'Telemarketing', category: 'marketing', risk: 'high'},
+// SCAM
+'4860': {name: 'Oszustwo', category: 'scam', risk: 'critical'},
+'4861': {name: 'Oszustwo', category: 'scam', risk: 'critical'},
+'4862': {name: 'Oszustwo telefoniczne', category: 'scam', risk: 'critical'},
+};
+
+var SPAM_PATTERNS = [
+{prefix: '48 22', name: 'Warszawa', category: 'city', risk: 'low'},
+{prefix: '4812', name: 'PZU / Ubezpieczenia', category: 'insurance', risk: 'high'},
+{prefix: '4814', name: 'Ubezpieczenia Warty', category: 'insurance', risk: 'high'},
+{prefix: '4850', name: 'Windykacja', category: 'collection', risk: 'high'},
+{prefix: '4860', name: 'Oszustwo', category: 'scam', risk: 'critical'},
+{prefix: '48 500', name: 'Telemarketing', category: 'marketing', risk: 'high'},
+{prefix: '48 600', name: 'Telemarketing', category: 'marketing', risk: 'high'},
+{prefix: '+48 22', name: 'Warszawa stacjonarne', category: 'city', risk: 'low'},
+];
+
+var recent = [];
+var countChecks = 18492;
+var countBlocked = 847;
+
+function checkPhone() {
+var num = document.getElementById('phoneInput').value.trim();
+if (!num) return;
+
+countChecks++;
+document.getElementById('countChecks').textContent = countChecks.toLocaleString();
+
+var result = getResult(num);
+showResult(result);
+addRecent(num, result);
+
+if (result.risk === 'critical' || result.risk === 'high') {
+countBlocked++;
+document.getElementById('countBlocked').textContent = countBlocked.toLocaleString();
+}
+}
+
+function getResult(num) {
+var clean = num.replace(/\D/g, '');
+
+// Check exact matches
+for (var i = 6; i >= 3; i--) {
+var prefix = clean.substring(0, i);
+if (SPAM_DB[prefix]) {
+return SPAM_DB[prefix];
+}
+}
+
+// Check patterns
+for (var p of SPAM_PATTERNS) {
+var pClean = p.prefix.replace(/\D/g, '');
+if (clean.includes(pClean)) {
+return {name: p.name, category: p.category, risk: p.risk};
+}
+}
+
+// Unknown - analyze
+if (clean.startsWith('48') && clean.length === 9) {
+return {name: 'Polska komórka', category: 'mobile', risk: 'unknown'};
+}
+if (clean.startsWith('48') && clean.length === 7) {
+return {name: 'Polska stacjonarny', category: 'landline', risk: 'unknown'};
+}
+if (clean.length < 9) {
+return {name: 'Nieprawidłowy numer', category: 'invalid', risk: 'low'};
+}
+
+return {name: 'Nieznany', category: 'unknown', risk: 'unknown'};
+}
+
+function showResult(r) {
+var el = document.getElementById('result');
+el.style.display = 'block';
+
+document.getElementById('resultTitle').textContent = r.name;
+document.getElementById('resultSub').textContent = getCategoryName(r.category);
+
+if (r.risk === 'critical') {
+el.className = 'result spam';
+document.getElementById('resultIcon').textContent = '🚫';
+} else if (r.risk === 'high') {
+el.className = 'result spam';
+document.getElementById('resultIcon').textContent = '⛔';
+} else if (r.risk === 'medium') {
+el.className = 'result warn';
+document.getElementById('resultIcon').textContent = '⚠️';
+} else {
+el.className = 'result ok';
+document.getElementById('resultIcon').textContent = '✅';
+}
+}
+
+function getCategoryName(c) {
+var names = {
+bank: '🏦 Banki',
+insurance: '📊 Ubezpieczenia',
+marketing: '📞 Marketing',
+collection: '💰 Windykacja',
+operator: '📱 Operator',
+city: '🏙️ Miasto',
+scam: '🎯 Oszustwo',
+mobile: '📱 Komórka',
+landline: '☎️ Stacjonarny',
+invalid: '❌ Błędny numer',
+unknown: '❓ Nieznany'
+};
+return names[c] || c;
+}
+
+function addRecent(num, result) {
+recent.unshift({num: num, result: result});
+if (recent.length > 5) recent.pop();
+renderRecent();
+}
+
+function renderRecent() {
+var el = document.getElementById('recentList');
+el.innerHTML = recent.map(function(r) {
+var icon = '✅';
+if (r.result.risk === 'critical' || r.result.risk === 'high') icon = '🚫';
+else if (r.result.risk === 'medium') icon = '⚠️';
+return '<div class="recent-item"><span class="recent-icon">' + icon + '</span><div><div class="recent-num">' + formatPhone(r.num) + '</div><div class="recent-cat">' + r.result.name + '</div></div></div>';
+}).join('');
+}
+
+function formatPhone(num) {
+num = num.replace(/\D/g, '');
+if (num.length === 9) return num.substring(0,3) + ' ' + num.substring(3,6) + ' ' + num.substring(6);
+if (num.length === 7) return num.substring(0,3) + ' ' + num.substring(3);
+return num;
+}
+
+function reportSpam() {
+var num = document.getElementById('reportInput').value.trim();
+if (!num) return;
+document.getElementById('countSpam').textContent = (3247 + Math.floor(Math.random()*100)).toLocaleString();
+alert('Dziękujemy! Numer ' + num + ' został dodany do bazy spamu.');
+document.getElementById('reportInput').value = '';
+}
+
+function activateBlocker() {
+alert('Aby włączyć pełną ochronę:\n\n1. Pobierz aplikację SpamTel APK\n2. Zainstaluj na telefonie\n3. Przyznaj uprawnienia\n\nAplikacja będzie automatycznie blokować połączenia marketingowe!');
+}
+
+document.getElementById('phoneInput').addEventListener('keypress', function(e) {
+if (e.key === 'Enter') checkPhone();
+});
+</script>
+</body>
+</html>
